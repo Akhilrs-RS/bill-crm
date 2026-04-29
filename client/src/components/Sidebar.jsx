@@ -3,14 +3,15 @@ import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
-  FileText, // Used for Invoices
-  ClipboardList, // Added for Quotations
+  FileText,
+  ClipboardList,
   Briefcase,
   BarChart2,
   Menu,
   ChevronLeft,
   Wallet,
   MapPin,
+  Receipt, // Added for Expense Tracking
 } from "lucide-react";
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
@@ -37,6 +38,11 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
       path: "/billing",
       name: "Invoices",
       icon: <FileText size={22} />,
+    },
+    {
+      path: "/expenses", // New Expense Route
+      name: "Expense Tracking",
+      icon: <Receipt size={22} />,
     },
     { path: "/employees", name: "Employees", icon: <Briefcase size={22} /> },
     { path: "/attendance", name: "Attendance", icon: <MapPin size={22} /> },

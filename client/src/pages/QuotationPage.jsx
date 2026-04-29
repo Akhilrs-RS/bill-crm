@@ -2,8 +2,7 @@ import React, { useState, useRef } from "react";
 import { useReactToPrint } from "react-to-print";
 import PrintableInvoice from "../components/PrintableInvoice";
 
-export default function BillingPage() {
-  // Logic remains similar to Quotation, but change the docType to "Invoice"
+export default function QuotationPage() {
   const [items, setItems] = useState([]);
   const [newItem, setNewItem] = useState({
     description: "",
@@ -23,11 +22,11 @@ export default function BillingPage() {
 
   return (
     <div className="p-8 bg-slate-50 min-h-screen">
-      <h1 className="text-3xl font-bold mb-8">Invoices</h1>
-      {/* Structure identical to Quotation, but with different title/docType */}
+      <h1 className="text-3xl font-bold mb-8">Generate Quotation</h1>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="bg-white p-6 rounded-2xl border shadow-sm">
           <form onSubmit={addItem} className="space-y-3">
+            {/* Same form as before */}
             <input
               placeholder="Description"
               className="w-full p-3 border rounded-xl"
@@ -56,11 +55,16 @@ export default function BillingPage() {
           </form>
         </div>
         <div className="lg:col-span-2 bg-white p-8 rounded-2xl border shadow-sm">
+          <input
+            placeholder="Client Name"
+            className="w-full text-lg border-b mb-6"
+            onChange={(e) => setClientName(e.target.value)}
+          />
           <button
             onClick={handlePrint}
-            className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold"
+            className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold"
           >
-            Print Invoice
+            Print Quotation
           </button>
         </div>
       </div>
@@ -68,7 +72,7 @@ export default function BillingPage() {
         <PrintableInvoice
           ref={componentRef}
           data={{ customer: clientName, items }}
-          docType="Invoice"
+          docType="Quotation"
         />
       </div>
     </div>

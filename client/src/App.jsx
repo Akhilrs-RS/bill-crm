@@ -8,9 +8,10 @@ import {
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import CRMPage from "./pages/CRMPage";
-import BillingPage from "./pages/BillingPage";
+import BillingPage from "./pages/BillingPage"; // Now handles Invoices only
+import QuotationPage from "./pages/QuotationPage"; // Added for Quotations
 import EmployeesPage from "./pages/EmployeesPage";
-import AttendancePage from "./pages/AttendancePage"; // 1. Import the new page
+import AttendancePage from "./pages/AttendancePage";
 import SalaryPage from "./pages/SalaryPage";
 import ReportsPage from "./pages/ReportsPage";
 
@@ -28,12 +29,13 @@ function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/crm" element={<CRMPage />} />
+
+            {/* Separated Routes */}
             <Route path="/billing" element={<BillingPage />} />
+            <Route path="/quotations" element={<QuotationPage />} />
+
             <Route path="/employees" element={<EmployeesPage />} />
-
-            {/* 2. Added Attendance Route */}
             <Route path="/attendance" element={<AttendancePage />} />
-
             <Route path="/salary" element={<SalaryPage />} />
             <Route path="/reports" element={<ReportsPage />} />
 

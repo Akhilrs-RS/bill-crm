@@ -3,13 +3,14 @@ import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
-  FileText,
+  FileText, // Used for Invoices
+  ClipboardList, // Added for Quotations
   Briefcase,
   BarChart2,
   Menu,
   ChevronLeft,
   Wallet,
-  MapPin, // Added for Attendance
+  MapPin,
 } from "lucide-react";
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
@@ -28,12 +29,17 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
     { path: "/", name: "Dashboard", icon: <LayoutDashboard size={22} /> },
     { path: "/crm", name: "CRM (Customers)", icon: <Users size={22} /> },
     {
+      path: "/quotations",
+      name: "Quotations",
+      icon: <ClipboardList size={22} />,
+    },
+    {
       path: "/billing",
-      name: "Billing & Quotes",
+      name: "Invoices",
       icon: <FileText size={22} />,
     },
     { path: "/employees", name: "Employees", icon: <Briefcase size={22} /> },
-    { path: "/attendance", name: "Attendance", icon: <MapPin size={22} /> }, // Added
+    { path: "/attendance", name: "Attendance", icon: <MapPin size={22} /> },
     { path: "/salary", name: "Salary Management", icon: <Wallet size={22} /> },
     { path: "/reports", name: "Reports", icon: <BarChart2 size={22} /> },
   ];

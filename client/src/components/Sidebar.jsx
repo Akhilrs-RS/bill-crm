@@ -11,7 +11,9 @@ import {
   ChevronLeft,
   Wallet,
   MapPin,
-  Receipt, // Added for Expense Tracking
+  Receipt,
+  Landmark, // Added for Accounts/Compliance
+  CheckSquare, // Added for Completed Projects
 } from "lucide-react";
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
@@ -40,10 +42,26 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
       icon: <FileText size={22} />,
     },
     {
-      path: "/expenses", // New Expense Route
+      path: "/expenses",
       name: "Expense Tracking",
       icon: <Receipt size={22} />,
     },
+    {
+      path: "/completed-projects", // Added Completed Projects
+      name: "Completed Projects",
+      icon: <CheckSquare size={22} />,
+    },
+
+    // Section Header for Compliance (as seen in IMG_5176.jpg)
+    { type: "header", name: "COMPLIANCE" },
+
+    {
+      path: "/accounts", // Added Accounts
+      name: "Accounts",
+      icon: <Landmark size={22} />,
+    },
+
+    { type: "header", name: "HUMAN RESOURCES" },
     { path: "/employees", name: "Employees", icon: <Briefcase size={22} /> },
     { path: "/attendance", name: "Attendance", icon: <MapPin size={22} /> },
     { path: "/salary", name: "Salary Management", icon: <Wallet size={22} /> },
@@ -56,7 +74,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         isOpen ? "w-64" : "w-20"
       } bg-slate-900 text-white p-4 flex flex-col h-screen transition-all duration-300 relative shadow-xl`}
     >
-      {/* Clickable Header Area */}
+      {/* Header Area */}
       <div
         onClick={toggleSidebar}
         className="mb-10 mt-2 px-2 flex items-center cursor-pointer group hover:bg-slate-800 rounded-xl p-2 transition"
@@ -77,8 +95,21 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
       </div>
 
       {/* Navigation */}
-      <ul className="space-y-3 flex-1">
-        {menuItems.map((item) => {
+      <ul className="space-y-2 flex-1">
+        {menuItems.map((item, index) => {
+          // Handle Section Headers
+          if (item.type === "header") {
+            return isOpen ? (
+              <li key={index} className="px-4 pt-4 pb-1">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  {item.name}
+                </span>
+              </li>
+            ) : (
+              <li key={index} className="h-px bg-slate-800 my-4" />
+            );
+          }
+
           const isActive = location.pathname === item.path;
           return (
             <li key={item.path}>

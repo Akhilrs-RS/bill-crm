@@ -8,6 +8,8 @@ import {
   BarChart2,
   Menu,
   ChevronLeft,
+  Wallet,
+  MapPin, // Added for Attendance
 } from "lucide-react";
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
@@ -31,6 +33,8 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
       icon: <FileText size={22} />,
     },
     { path: "/employees", name: "Employees", icon: <Briefcase size={22} /> },
+    { path: "/attendance", name: "Attendance", icon: <MapPin size={22} /> }, // Added
+    { path: "/salary", name: "Salary Management", icon: <Wallet size={22} /> },
     { path: "/reports", name: "Reports", icon: <BarChart2 size={22} /> },
   ];
 
@@ -40,7 +44,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         isOpen ? "w-64" : "w-20"
       } bg-slate-900 text-white p-4 flex flex-col h-screen transition-all duration-300 relative shadow-xl`}
     >
-      {/* Clickable Header Area (Easy to Toggle) */}
+      {/* Clickable Header Area */}
       <div
         onClick={toggleSidebar}
         className="mb-10 mt-2 px-2 flex items-center cursor-pointer group hover:bg-slate-800 rounded-xl p-2 transition"
@@ -68,7 +72,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             <li key={item.path}>
               <Link
                 to={item.path}
-                title={!isOpen ? item.name : ""} // TOOLTIP: Shows text on hover when collapsed
+                title={!isOpen ? item.name : ""}
                 className={`flex items-center ${
                   isOpen ? "justify-start gap-4 px-4" : "justify-center px-2"
                 } py-3 rounded-xl transition-all duration-200 ${

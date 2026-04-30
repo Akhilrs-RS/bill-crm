@@ -1,20 +1,23 @@
 import React, { useState } from "react";
 import {
   Search,
-  MapPin,
-  CalendarDays,
   ChevronDown,
   CheckCircle,
+  History,
+  Users,
+  CalendarDays,
+  ArrowLeft,
 } from "lucide-react";
 
 export default function AttendancePage() {
   // 1. STATE MANAGEMENT
-  const today = new Date().toISOString().split("T")[0]; // format: YYYY-MM-DD
+  const today = new Date().toISOString().split("T")[0];
   const [selectedDate, setSelectedDate] = useState(today);
   const [employeeFilter, setEmployeeFilter] = useState("All Employees");
   const [statusFilter, setStatusFilter] = useState("All Status");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState("mark"); // 'mark' or 'history'
 
-  // 2. SAMPLE DATA (matches the names and structure from the image)
   const [attendanceRecords, setAttendanceRecords] = useState([
     {
       id: 1,
@@ -63,187 +66,243 @@ export default function AttendancePage() {
     },
   ]);
 
-  // 3. CALCULATE SUMMARY STATS
+  // 2. SEARCH & FILTER LOGIC
+  const filteredRecords = attendanceRecords.filter((record) => {
+    const matchesSearch =
+      record.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      record.phone.includes(searchTerm);
+    const matchesCategory =
+      employeeFilter === "All Employees" || record.category === employeeFilter;
+    const matchesStatus =
+      statusFilter === "All Status" || record.status === statusFilter;
+
+    return matchesSearch && matchesCategory && matchesStatus;
+  });
+
+  // 3. SUMMARY STATS
   const totalEmployees = attendanceRecords.length;
   const presentCount = attendanceRecords.filter(
     (r) => r.status === "present",
   ).length;
   const absentCount = totalEmployees - presentCount;
 
-  // 4. ACTION HANDLERS
-  const markAllPresent = () => {
-    setAttendanceRecords((prev) =>
-      prev.map((record) => ({ ...record, status: "present" })),
-    );
-  };
+  // 4. HELPERS
+  const isHistoryMode = selectedDate !== today || viewMode === "history";
 
-  const markAttendanceAction = () => {
-    console.log("Saving attendance for date:", selectedDate, attendanceRecords);
-    alert(`Attendance for ${selectedDate} saved to database.`);
-  };
-
-  // HELPER COMPONENT: Reusable Summary Card
-  const StatCard = ({ title, value, color, children }) => (
-    <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between h-36">
-      <div className="text-sm font-medium text-slate-500">{title}</div>
-      <div className={`text-5xl font-extrabold ${color}`}>
-        {children || value}
+  const StatCard = ({ title, value, color, icon: Icon }) => (
+    <div className="bg-white p-6 rounded-[30px] border border-slate-100 shadow-sm flex flex-col justify-between h-36">
+      <div className="flex justify-between items-center text-sm font-bold text-slate-400 uppercase tracking-widest">
+        {title}
+        {Icon && <Icon size={18} className="text-slate-300" />}
       </div>
+      <div className={`text-5xl font-black ${color}`}>{value}</div>
     </div>
   );
 
   return (
-    <div className="p-8 bg-slate-50 min-h-screen">
+    <div className="p-8 bg-slate-50 min-h-screen font-sans">
       {/* HEADER SECTION */}
-      <div className="flex justify-between items-center mb-10">
-        <h1 className="text-3xl font-bold text-slate-950">Attendance</h1>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+        <div>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+            {isHistoryMode ? (
+              <History className="text-orange-500" />
+            ) : (
+              <Users className="text-blue-600" />
+            )}
+            {isHistoryMode ? "Attendance Logs" : "Daily Attendance"}
+          </h1>
+          <p className="text-slate-500 font-medium mt-1">
+            {isHistoryMode
+              ? `Viewing history for ${selectedDate}`
+              : "Mark attendance for today's shift"}
+          </p>
+        </div>
+
         <div className="flex items-center gap-4">
-          <button
-            onClick={markAllPresent}
-            className="text-sm font-medium text-blue-600 hover:text-blue-700"
-          >
-            Mark All Present
-          </button>
-          <button
-            onClick={markAttendanceAction}
-            className="bg-blue-600 text-white px-5 py-3 rounded-xl font-semibold flex items-center gap-2 text-sm"
-          >
-            <CheckCircle size={18} />
-            Mark Attendance
-          </button>
+          {isHistoryMode ? (
+            <button
+              onClick={() => {
+                setSelectedDate(today);
+                setViewMode("mark");
+              }}
+              className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold shadow-lg transition hover:bg-slate-800"
+            >
+              <ArrowLeft size={18} /> Back to Today
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() =>
+                  setAttendanceRecords((prev) =>
+                    prev.map((r) => ({ ...r, status: "present" })),
+                  )
+                }
+                className="text-sm font-bold text-blue-600 hover:underline"
+              >
+                Mark All Present
+              </button>
+              <button className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg flex items-center gap-2 transition hover:bg-blue-700">
+                <CheckCircle size={20} /> Save Attendance
+              </button>
+            </>
+          )}
         </div>
       </div>
 
       {/* TOP GRID (DATE & SUMMARY) */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        {/* Date Selector Card */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between h-36">
-          <div className="text-sm font-medium text-slate-500">Date</div>
-          <div className="relative">
+        <div className="bg-white p-6 rounded-[30px] border border-slate-100 shadow-sm flex flex-col justify-between h-36">
+          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            Selected Date
+          </div>
+          <div className="relative flex items-center gap-3">
+            <CalendarDays className="text-indigo-500" size={24} />
             <input
               type="date"
               value={selectedDate}
+              max={today}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-full text-lg font-semibold bg-transparent appearance-none outline-none focus:text-blue-600"
+              className="w-full text-xl font-black bg-transparent outline-none cursor-pointer focus:text-indigo-600"
             />
-            {/* The calendar icon is handled by input type="date" natively in most browsers, simplified here */}
           </div>
         </div>
-
-        {/* Present Card */}
-        <StatCard title="Present" value={presentCount} color="text-green-600" />
-
-        {/* Absent Card */}
-        <StatCard title="Absent" value={absentCount} color="text-red-600" />
-
-        {/* Total Employees Card */}
         <StatCard
-          title="Total Employees"
+          title="Present"
+          value={presentCount}
+          color="text-emerald-500"
+        />
+        <StatCard title="Absent" value={absentCount} color="text-red-500" />
+        <StatCard
+          title="Total Staff"
           value={totalEmployees}
           color="text-slate-900"
         />
       </div>
 
-      {/* FILTERS AND TABLE SECTION */}
-      <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-        {/* Dropdown Filters */}
-        <div className="flex gap-4 mb-8">
-          {[
-            {
-              value: employeeFilter,
-              setter: setEmployeeFilter,
-              options: ["All Employees", "Helper", "Carpenter", "Designer"],
-            },
-            {
-              value: statusFilter,
-              setter: setStatusFilter,
-              options: ["All Status", "present", "absent"],
-            },
-          ].map((filter, i) => (
-            <div key={i} className="relative w-48">
+      {/* SEARCH AND FILTERS */}
+      <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm">
+        <div className="flex flex-col md:flex-row justify-between gap-6 mb-10">
+          {/* SEARCH BAR */}
+          <div className="relative flex-1 max-w-md">
+            <Search
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+              size={20}
+            />
+            <input
+              type="text"
+              placeholder="Search by name or phone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-6 py-4 bg-slate-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-medium transition-all"
+            />
+          </div>
+
+          {/* DROPDOWNS */}
+          <div className="flex gap-4">
+            <div className="relative w-44">
               <select
-                value={filter.value}
-                onChange={(e) => filter.setter(e.target.value)}
-                className="w-full p-3 pl-4 pr-10 border border-slate-200 rounded-xl appearance-none bg-slate-50 text-sm font-medium"
+                value={employeeFilter}
+                onChange={(e) => setEmployeeFilter(e.target.value)}
+                className="w-full p-4 border border-slate-100 rounded-2xl appearance-none bg-slate-50 text-xs font-bold uppercase tracking-wider outline-none"
               >
-                {filter.options.map((opt) => (
-                  <option key={opt}>{opt}</option>
+                {[
+                  "All Employees",
+                  "Helper",
+                  "Carpenter",
+                  "Designer",
+                  "Supervisor",
+                  "Mason",
+                ].map((o) => (
+                  <option key={o}>{o}</option>
                 ))}
               </select>
               <ChevronDown
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-                size={18}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                size={16}
               />
             </div>
-          ))}
+
+            <div className="relative w-44">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full p-4 border border-slate-100 rounded-2xl appearance-none bg-slate-50 text-xs font-bold uppercase tracking-wider outline-none"
+              >
+                {["All Status", "present", "absent"].map((o) => (
+                  <option key={o} value={o}>
+                    {o.toUpperCase()}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                size={16}
+              />
+            </div>
+          </div>
         </div>
 
-        {/* THE ATTENDANCE TABLE */}
+        {/* TABLE */}
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead className="border-b border-slate-100">
-              <tr className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                <th className="px-4 py-4">Employee</th>
-                <th className="px-4 py-4">Category</th>
-                <th className="px-4 py-4">Status</th>
-                <th className="px-4 py-4">Overtime</th>
-                <th className="px-4 py-4">Remarks</th>
-                <th className="px-4 py-4">Actions</th>
+            <thead>
+              <tr className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-50">
+                <th className="px-6 py-6">Staff Details</th>
+                <th className="px-6 py-6">Category</th>
+                <th className="px-6 py-6">Status</th>
+                <th className="px-6 py-6">Overtime</th>
+                <th className="px-6 py-6 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody>
-              {attendanceRecords.map((item) => (
+            <tbody className="divide-y divide-slate-50">
+              {filteredRecords.map((item) => (
                 <tr
                   key={item.id}
-                  className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors"
+                  className="group hover:bg-slate-50/50 transition-colors"
                 >
-                  {/* Name & Phone */}
-                  <td className="px-4 py-5">
-                    <div className="font-semibold text-slate-900">
+                  <td className="px-6 py-6">
+                    <div className="font-black text-slate-900 text-base">
                       {item.name}
                     </div>
-                    <div className="text-xs text-slate-500">{item.phone}</div>
+                    <div className="text-xs font-bold text-slate-400">
+                      {item.phone}
+                    </div>
                   </td>
-
-                  {/* Category */}
-                  <td className="px-4 py-5 text-sm text-slate-700">
-                    {item.category}
+                  <td className="px-6 py-6">
+                    <span className="text-sm font-bold text-slate-600">
+                      {item.category}
+                    </span>
                   </td>
-
-                  {/* Status Badge */}
-                  <td className="px-4 py-5">
+                  <td className="px-6 py-6">
                     <span
-                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold capitalize ${
+                      className={`px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
                         item.status === "present"
-                          ? "bg-green-100/70 text-green-700"
-                          : "bg-red-100/70 text-red-700"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-red-100 text-red-700"
                       }`}
                     >
                       {item.status}
                     </span>
                   </td>
-
-                  {/* Overtime */}
-                  <td className="px-4 py-5 text-sm text-slate-700">
+                  <td className="px-6 py-6 font-bold text-slate-500 text-sm">
                     {item.overtime}
                   </td>
-
-                  {/* Remarks */}
-                  <td className="px-4 py-5 text-sm text-slate-500">
-                    {item.remarks}
-                  </td>
-
-                  {/* Action Dropdown */}
-                  <td className="px-4 py-5">
-                    <div className="relative w-32">
-                      <select className="w-full p-2 pl-3 pr-8 border border-slate-200 rounded-lg appearance-none bg-white text-xs font-medium">
+                  <td className="px-6 py-6 text-right">
+                    <div className="relative inline-block w-32">
+                      <select
+                        disabled={isHistoryMode}
+                        className={`w-full p-2 pl-3 pr-8 border border-slate-200 rounded-xl appearance-none bg-white text-[10px] font-bold uppercase transition ${isHistoryMode ? "opacity-30 cursor-not-allowed" : "hover:border-blue-400"}`}
+                      >
                         <option>Present</option>
                         <option>Absent</option>
                       </select>
-                      <ChevronDown
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400"
-                        size={14}
-                      />
+                      {!isHistoryMode && (
+                        <ChevronDown
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                          size={14}
+                        />
+                      )}
                     </div>
                   </td>
                 </tr>

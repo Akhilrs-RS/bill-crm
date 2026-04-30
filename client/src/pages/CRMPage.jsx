@@ -10,12 +10,14 @@ import {
   MapPin,
   Bell,
   CheckCircle,
+  Search, // Added Search icon
 } from "lucide-react";
 
 const CRMPage = () => {
   const [activeTab, setActiveTab] = useState("deals");
+  const [searchTerm, setSearchTerm] = useState(""); // State for search
 
-  // 1. CONTACTS STATE (Integrated with Address)
+  // 1. CONTACTS STATE
   const [contacts] = useState([
     {
       id: "c1",
@@ -40,7 +42,7 @@ const CRMPage = () => {
     },
   ]);
 
-  // 2. KANBAN PIPELINE (With "Lost" column as requested)
+  // 2. KANBAN PIPELINE
   const [pipeline, setPipeline] = useState({
     LEAD: { id: "LEAD", title: "LEAD", deals: [] },
     CONTACTED: {
@@ -101,6 +103,19 @@ const CRMPage = () => {
     },
   ]);
 
+  // Filter Logic
+  const filteredContacts = contacts.filter(
+    (c) =>
+      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.project.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
+
+  const filteredActivities = activities.filter(
+    (a) =>
+      a.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      a.type.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
+
   const onDragEnd = (result) => {
     const { source, destination } = result;
     if (!destination) return;
@@ -114,7 +129,6 @@ const CRMPage = () => {
     const destCol = pipeline[destination.droppableId];
     const sourceDeals = [...sourceCol.deals];
     const destDeals = [...destCol.deals];
-
     const [movedDeal] = sourceDeals.splice(source.index, 1);
 
     if (source.droppableId === destination.droppableId) {
@@ -135,12 +149,28 @@ const CRMPage = () => {
 
   return (
     <div className="p-8 bg-slate-50 min-h-screen">
-      {/* Tab Navigation */}
-      <div className="flex justify-between items-center mb-8">
+      {/* Header & Search Bar Area */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">CRM Hub</h1>
           <p className="text-slate-500">Relationships, Pipeline, and Tasks.</p>
         </div>
+
+        {/* --- NEW SEARCH BAR --- */}
+        <div className="relative w-full md:w-96">
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            size={18}
+          />
+          <input
+            type="text"
+            placeholder={`Search ${activeTab}...`}
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
         <div className="flex gap-2 bg-white p-1.5 rounded-2xl border shadow-sm">
           {[
             { id: "contacts", label: "Contacts", icon: <User size={18} /> },
@@ -153,7 +183,10 @@ const CRMPage = () => {
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                setActiveTab(tab.id);
+                setSearchTerm("");
+              }} // Clear search on tab change
               className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold transition ${
                 activeTab === tab.id
                   ? "bg-indigo-600 text-white shadow-md"
@@ -180,7 +213,7 @@ const CRMPage = () => {
               </tr>
             </thead>
             <tbody>
-              {contacts.map((c) => (
+              {filteredContacts.map((c) => (
                 <tr
                   key={c.id}
                   className="border-b hover:bg-slate-50 transition"
@@ -206,7 +239,7 @@ const CRMPage = () => {
           </table>
         )}
 
-        {/* SECTION 2: DEALS (Kanban Pipeline) */}
+        {/* SECTION 2: DEALS */}
         {activeTab === "deals" && (
           <div className="p-6 overflow-x-auto">
             <div className="flex justify-between items-center mb-8">
@@ -234,42 +267,48 @@ const CRMPage = () => {
                           ref={provided.innerRef}
                           className="min-h-[400px]"
                         >
-                          {column.deals.map((deal, index) => {
-                            const contact = contacts.find(
-                              (c) => c.id === deal.contactId,
-                            );
-                            return (
-                              <Draggable
-                                key={deal.id}
-                                draggableId={deal.id}
-                                index={index}
-                              >
-                                {(provided) => (
-                                  <div
-                                    ref={provided.innerRef}
-                                    {...provided.draggableProps}
-                                    {...provided.dragHandleProps}
-                                    className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-3 hover:border-blue-400 transition-all"
-                                  >
-                                    <h4 className="font-bold text-slate-900 text-sm mb-1">
-                                      {deal.title}
-                                    </h4>
-                                    <p className="text-[11px] text-slate-400 mb-3">
-                                      {contact?.name}
-                                    </p>
-                                    <div className="text-lg font-black text-blue-600 mb-2">
-                                      ₹{deal.value.toLocaleString()}
+                          {column.deals
+                            .filter((d) =>
+                              d.title
+                                .toLowerCase()
+                                .includes(searchTerm.toLowerCase()),
+                            )
+                            .map((deal, index) => {
+                              const contact = contacts.find(
+                                (c) => c.id === deal.contactId,
+                              );
+                              return (
+                                <Draggable
+                                  key={deal.id}
+                                  draggableId={deal.id}
+                                  index={index}
+                                >
+                                  {(provided) => (
+                                    <div
+                                      ref={provided.innerRef}
+                                      {...provided.draggableProps}
+                                      {...provided.dragHandleProps}
+                                      className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-3 hover:border-blue-400 transition-all"
+                                    >
+                                      <h4 className="font-bold text-slate-900 text-sm mb-1">
+                                        {deal.title}
+                                      </h4>
+                                      <p className="text-[11px] text-slate-400 mb-3">
+                                        {contact?.name}
+                                      </p>
+                                      <div className="text-lg font-black text-blue-600 mb-2">
+                                        ₹{deal.value.toLocaleString()}
+                                      </div>
+                                      <div className="pt-2 border-t flex justify-between items-center text-[10px] text-slate-400">
+                                        <span className="flex items-center gap-1">
+                                          <Phone size={10} /> {contact?.phone}
+                                        </span>
+                                      </div>
                                     </div>
-                                    <div className="pt-2 border-t flex justify-between items-center text-[10px] text-slate-400">
-                                      <span className="flex items-center gap-1">
-                                        <Phone size={10} /> {contact?.phone}
-                                      </span>
-                                    </div>
-                                  </div>
-                                )}
-                              </Draggable>
-                            );
-                          })}
+                                  )}
+                                </Draggable>
+                              );
+                            })}
                           {provided.placeholder}
                         </div>
                       )}
@@ -313,7 +352,7 @@ const CRMPage = () => {
                 Upcoming Schedule
               </h3>
               <div className="space-y-3">
-                {activities.map((act) => (
+                {filteredActivities.map((act) => (
                   <div
                     key={act.id}
                     className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl"

@@ -1,315 +1,431 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useReactToPrint } from "react-to-print";
 import PrintableInvoice from "../components/PrintableInvoice";
-import {
-  Plus,
-  Trash2,
-  Printer,
-  Save,
-  RotateCcw,
-  CreditCard,
-  User,
-  Hash,
-} from "lucide-react";
+import { Trash2, Printer, Save, RotateCcw, Search, History, X, Eye } from "lucide-react";
 
 export default function BillingPage() {
   const [items, setItems] = useState([]);
   const [clientName, setClientName] = useState("");
-  const [clientAddress, setClientAddress] = useState("");
   const [invoiceNo, setInvoiceNo] = useState("");
   const [invoiceDate] = useState(new Date().toLocaleDateString("en-GB"));
+
+  // Footer fields
+  const [discount, setDiscount] = useState(0);
+  const [lessAmount, setLessAmount] = useState(0);
+  const [advanceAmount, setAdvanceAmount] = useState(0);
+  const [receivedAmount, setReceivedAmount] = useState(0);
+
+  const [newItem, setNewItem] = useState({
+    work: "",
+    unit: "Sq.Ft",
+    area: "",
+    price: "",
+    gstPerc: 18,
+  });
 
   // Logic for Auto-Incrementing Invoice Number
   useEffect(() => {
     const lastNum = localStorage.getItem("lastInvoiceNumber") || "1000";
     const newNum = parseInt(lastNum) + 1;
-    setInvoiceNo(`MI/SRV/${newNum}/26-27`); // Mona Interior / Service / Number / Year
+    setInvoiceNo(`MI/SRV/${newNum}/26-27`);
   }, []);
-
-  const [newItem, setNewItem] = useState({
-    category: "Design Services",
-    hsn: "9983", // Standard SAC for Interior Design
-    name: "",
-    qty: 1,
-    rate: "",
-  });
 
   const componentRef = useRef();
   const handlePrint = useReactToPrint({ contentRef: componentRef });
 
   const addItem = (e) => {
-    e.preventDefault();
-    if (!newItem.name || !newItem.rate) return;
-    const amount = parseFloat(newItem.qty) * parseFloat(newItem.rate);
-    setItems([...items, { ...newItem, amount, id: Date.now() }]);
-    setNewItem({ ...newItem, name: "", qty: 1, rate: "" });
+    if (e && e.preventDefault) e.preventDefault();
+    if (!newItem.work || !newItem.price) return;
+
+    const taxableAmount =
+      parseFloat(newItem.area || 1) * parseFloat(newItem.price);
+    const gstAmount = (taxableAmount * parseFloat(newItem.gstPerc || 0)) / 100;
+    const totalAmount = taxableAmount + gstAmount;
+
+    setItems([
+      ...items,
+      {
+        ...newItem,
+        taxableAmount,
+        gstAmount,
+        amount: totalAmount,
+        id: Date.now(),
+      },
+    ]);
+    setNewItem({ work: "", unit: "Sq.Ft", area: "", price: "", gstPerc: 18 });
   };
 
   const removeItem = (id) => {
     setItems(items.filter((item) => item.id !== id));
   };
 
-  const subTotal = items.reduce((sum, item) => sum + item.amount, 0);
-  const tax = subTotal * 0.18; // 18% GST for professional services
-  const grandTotal = subTotal + tax;
+  const subTotal = items.reduce((sum, item) => sum + item.taxableAmount, 0);
+  const totalGst = items.reduce((sum, item) => sum + item.gstAmount, 0);
+  const totalArea = items.reduce(
+    (sum, item) => sum + parseFloat(item.area || 0),
+    0,
+  );
+
+  const discountAmt = (subTotal * (parseFloat(discount) || 0)) / 100;
+  const grandTotal =
+    subTotal - discountAmt - (parseFloat(lessAmount) || 0) + totalGst;
+  const balanceAmount =
+    grandTotal -
+    (parseFloat(advanceAmount) || 0) -
+    (parseFloat(receivedAmount) || 0);
 
   const saveInvoice = () => {
-    // Extract number from MI/SRV/1001/26-27
     const currentNum = invoiceNo.split("/")[2];
     localStorage.setItem("lastInvoiceNumber", currentNum);
-    alert("Invoice Saved & Sequence Updated");
+    alert("Invoice Saved Successfully");
+  };
+
+  const clearForm = () => {
+    if (window.confirm("Clear all data?")) {
+      setItems([]);
+      setClientName("");
+      setDiscount(0);
+      setLessAmount(0);
+      setAdvanceAmount(0);
+      setReceivedAmount(0);
+    }
   };
 
   return (
-    <div className="bg-slate-50 min-h-screen font-sans text-slate-700">
-      {/* Refined Modern Header */}
-      <div className="bg-white border-b border-slate-200 px-8 py-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-            Invoice Generator
-          </h1>
-          <p className="text-slate-500 text-sm">
-            Professional billing for Mona Interior Studio
-          </p>
+    <div className="bg-gray-200 min-h-screen font-sans text-slate-800 flex flex-col">
+      {/* Invoice Info Bar */}
+      <div className="bg-blue-50 p-2 grid grid-cols-12 gap-2 border-b border-blue-200 items-end text-slate-600">
+        <div className="col-span-2">
+          <label className="block text-[10px] font-bold text-slate-500 uppercase">
+            Invoice Number
+          </label>
+          <input
+            disabled
+            value={invoiceNo}
+            className="w-full bg-blue-100 border border-blue-200 px-2 py-1 text-sm font-bold text-blue-800 outline-none"
+          />
         </div>
-        <div className="flex gap-3">
-          <div className="text-right mr-4">
-            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-              Status
-            </span>
-            <span className="text-emerald-500 font-bold flex items-center gap-1">
-              ● Draft
-            </span>
+        <div className="col-span-2">
+          <label className="block text-[10px] font-bold text-slate-500 uppercase">
+            Invoice Date
+          </label>
+          <input
+            disabled
+            value={invoiceDate}
+            className="w-full bg-blue-100 border border-blue-200 px-2 py-1 text-sm font-bold text-slate-700"
+          />
+        </div>
+        <div className="col-span-4">
+          <label className="block text-[10px] font-bold text-slate-500 uppercase">
+            Client / Site Selection
+          </label>
+          <div className="flex">
+            <input
+              placeholder="Search Client Name..."
+              value={clientName}
+              onChange={(e) => setClientName(e.target.value)}
+              className="w-full bg-white border border-blue-200 px-2 py-1 text-sm outline-none focus:border-blue-400"
+            />
+            <button className="bg-blue-600 text-white px-2 text-xs font-bold">
+              NEW
+            </button>
           </div>
-          <button
-            onClick={saveInvoice}
-            className="bg-slate-900 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition shadow-lg shadow-slate-200"
-          >
-            <Save size={18} /> Save Invoice
-          </button>
+        </div>
+        <div className="col-span-2">
+          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-tighter">
+            Total Taxable Value
+          </label>
+          <div className="bg-orange-100 border border-orange-200 px-2 py-1 text-sm font-bold text-orange-700 text-right">
+            ₹{subTotal.toFixed(2)}
+          </div>
+        </div>
+        <div className="col-span-2 flex justify-between text-[10px] font-bold pt-4">
+          <div>
+            CGST 9%:{" "}
+            <span className="text-blue-700">₹{(totalGst / 2).toFixed(2)}</span>
+          </div>
+          <div>
+            SGST 9%:{" "}
+            <span className="text-blue-700">₹{(totalGst / 2).toFixed(2)}</span>
+          </div>
         </div>
       </div>
 
-      <div className="p-8 max-w-7xl mx-auto grid grid-cols-12 gap-8">
-        {/* Left Section: Details Entry */}
-        <div className="col-span-12 lg:col-span-8 space-y-6">
-          {/* Client & Metadata Card */}
-          <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm grid grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 border-b border-slate-50 pb-2">
-                <User size={18} className="text-indigo-500" />
-                <h3 className="font-bold text-slate-900">Client Details</h3>
-              </div>
-              <input
-                placeholder="Client Full Name"
-                className="w-full p-3 bg-slate-50 rounded-xl outline-none border border-transparent focus:border-indigo-500 transition"
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-              />
-              <textarea
-                placeholder="Site Address"
-                rows="2"
-                className="w-full p-3 bg-slate-50 rounded-xl outline-none border border-transparent focus:border-indigo-500 transition"
-                value={clientAddress}
-                onChange={(e) => setClientAddress(e.target.value)}
-              />
-            </div>
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 border-b border-slate-50 pb-2">
-                <Hash size={18} className="text-indigo-500" />
-                <h3 className="font-bold text-slate-900">Invoice Info</h3>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                    Invoice No
-                  </label>
-                  <input
-                    disabled
-                    value={invoiceNo}
-                    className="w-full p-3 bg-white border border-slate-200 rounded-xl font-mono font-bold text-indigo-600"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                    Date
-                  </label>
-                  <input
-                    disabled
-                    value={invoiceDate}
-                    className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold"
-                  />
-                </div>
-              </div>
-            </div>
+      {/* Work Entry Row */}
+      <div className="bg-orange-50 p-1 grid grid-cols-12 gap-1 border-b border-orange-200">
+        <div className="col-span-5">
+          <label className="block text-[10px] font-bold text-orange-800 text-center uppercase">
+            Work Description
+          </label>
+          <input
+            placeholder="e.g. Living Room False Ceiling"
+            value={newItem.work}
+            onChange={(e) => setNewItem({ ...newItem, work: e.target.value })}
+            onKeyPress={(e) => e.key === "Enter" && addItem()}
+            className="w-full bg-white border border-orange-200 px-2 py-1 text-sm outline-none focus:border-orange-400 font-medium"
+          />
+        </div>
+        <div className="col-span-1">
+          <label className="block text-[10px] font-bold text-orange-800 text-center uppercase">
+            Unit
+          </label>
+          <select
+            value={newItem.unit}
+            onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}
+            className="w-full bg-white border border-orange-200 px-2 py-1 text-sm outline-none focus:border-orange-400"
+          >
+            <option>Sq.Ft</option>
+            <option>L.Ft</option>
+            <option>Nos</option>
+            <option>LS</option>
+          </select>
+        </div>
+        <div className="col-span-1">
+          <label className="block text-[10px] font-bold text-orange-800 text-center uppercase">
+            Area
+          </label>
+          <input
+            type="number"
+            value={newItem.area}
+            onChange={(e) => setNewItem({ ...newItem, area: e.target.value })}
+            className="w-full bg-white border border-orange-200 px-2 py-1 text-sm text-center outline-none focus:border-orange-400"
+          />
+        </div>
+        <div className="col-span-2">
+          <label className="block text-[10px] font-bold text-orange-800 text-center uppercase tracking-tighter">
+            Price / Unit(₹)
+          </label>
+          <input
+            type="number"
+            value={newItem.price}
+            onChange={(e) => setNewItem({ ...newItem, price: e.target.value })}
+            onKeyPress={(e) => e.key === "Enter" && addItem()}
+            className="w-full bg-white border border-orange-200 px-2 py-1 text-sm text-right outline-none focus:border-orange-400 font-bold"
+          />
+        </div>
+        <div className="col-span-1">
+          <label className="block text-[10px] font-bold text-orange-800 text-center uppercase">
+            GST %
+          </label>
+          <input
+            type="number"
+            value={newItem.gstPerc}
+            onChange={(e) =>
+              setNewItem({ ...newItem, gstPerc: e.target.value })
+            }
+            className="w-full bg-white border border-orange-200 px-2 py-1 text-sm text-center outline-none focus:border-orange-400"
+          />
+        </div>
+        <div className="col-span-2">
+          <label className="block text-[10px] font-bold text-orange-800 text-center uppercase">
+            Total Incl Tax ₹
+          </label>
+          <div className="w-full bg-orange-100 border border-orange-200 px-2 py-1 text-sm text-right font-bold text-orange-700 h-[26px]">
+            {(
+              parseFloat(newItem.area || 1) *
+              parseFloat(newItem.price || 0) *
+              (1 + parseFloat(newItem.gstPerc || 0) / 100)
+            ).toFixed(2)}
           </div>
+        </div>
+      </div>
 
-          {/* Line Item Entry */}
-          <div className="bg-white p-6 rounded-[32px] border border-slate-200 shadow-sm">
-            <div className="grid grid-cols-12 gap-4 items-end">
-              <div className="col-span-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">
-                  Service Category
-                </label>
-                <select
-                  className="w-full p-3 bg-slate-50 rounded-xl outline-none border border-transparent focus:border-indigo-500 font-bold text-sm"
-                  value={newItem.category}
-                  onChange={(e) =>
-                    setNewItem({ ...newItem, category: e.target.value })
-                  }
-                >
-                  <option>Design Consultation</option>
-                  <option>3D Rendering</option>
-                  <option>Project Management</option>
-                  <option>Execution Work</option>
-                  <option>Furniture Supply</option>
-                </select>
-              </div>
-              <div className="col-span-4">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">
-                  Description
-                </label>
-                <input
-                  placeholder="e.g. Living Room False Ceiling"
-                  className="w-full p-3 bg-slate-50 rounded-xl outline-none border border-transparent focus:border-indigo-500 font-bold"
-                  value={newItem.name}
-                  onChange={(e) =>
-                    setNewItem({ ...newItem, name: e.target.value })
-                  }
-                />
-              </div>
-              <div className="col-span-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">
-                  Rate (₹)
-                </label>
-                <input
-                  type="number"
-                  className="w-full p-3 bg-slate-50 rounded-xl outline-none border border-transparent focus:border-indigo-500 font-bold"
-                  value={newItem.rate}
-                  onChange={(e) =>
-                    setNewItem({ ...newItem, rate: e.target.value })
-                  }
-                />
-              </div>
-              <div className="col-span-3">
-                <button
-                  onClick={addItem}
-                  className="w-full bg-indigo-600 text-white p-3 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-indigo-700 transition flex items-center justify-center gap-2"
-                >
-                  <Plus size={18} /> Add Item
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Items List */}
-          <div className="bg-white rounded-[32px] border border-slate-200 shadow-sm overflow-hidden">
-            <table className="w-full text-left">
-              <thead className="bg-slate-50 border-b border-slate-100">
-                <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  <th className="p-5">Service Details</th>
-                  <th className="p-5 text-right">SAC</th>
-                  <th className="p-5 text-right">Amount</th>
-                  <th className="p-5 text-center">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {items.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/50 transition">
-                    <td className="p-5">
-                      <span className="block font-black text-slate-900">
-                        {item.name}
-                      </span>
-                      <span className="text-[10px] text-indigo-500 font-bold uppercase">
-                        {item.category}
-                      </span>
-                    </td>
-                    <td className="p-5 text-right font-mono text-slate-400">
-                      {item.hsn}
-                    </td>
-                    <td className="p-5 text-right font-black text-slate-900 text-lg">
-                      ₹{item.amount.toLocaleString()}
-                    </td>
-                    <td className="p-5 text-center">
-                      <button
-                        onClick={() => removeItem(item.id)}
-                        className="text-slate-300 hover:text-red-500 transition"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {/* Main Table Area */}
+      <div className="flex-grow bg-white overflow-y-auto">
+        <table className="w-full text-[11px]">
+          <thead className="bg-gray-100 border-b border-gray-300 sticky top-0">
+            <tr className="uppercase text-gray-600 font-bold">
+              <th className="px-2 py-1 border-r border-gray-300 text-center w-12">
+                Rem
+              </th>
+              <th className="px-2 py-1 border-r border-gray-300 text-center w-10">
+                S#
+              </th>
+              <th className="px-2 py-1 border-r border-gray-300 text-left">
+                Work Description
+              </th>
+              <th className="px-2 py-1 border-r border-gray-300 text-center w-16">
+                Unit
+              </th>
+              <th className="px-2 py-1 border-r border-gray-300 text-center w-16">
+                Area
+              </th>
+              <th className="px-2 py-1 border-r border-gray-300 text-right w-24">
+                Price
+              </th>
+              <th className="px-2 py-1 border-r border-gray-300 text-right w-24">
+                Taxable
+              </th>
+              <th className="px-2 py-1 border-r border-gray-300 text-center w-12">
+                GST%
+              </th>
+              <th className="px-2 py-1 border-r border-gray-300 text-right w-20">
+                GST ₹
+              </th>
+              <th className="px-2 py-1 text-right w-24">Net Amt</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-200">
+            {items.map((item, idx) => (
+              <tr key={item.id} className="hover:bg-blue-50">
+                <td className="px-2 py-1 border-r border-gray-200 text-center">
+                  <button
+                    onClick={() => removeItem(item.id)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </td>
+                <td className="px-2 py-1 border-r border-gray-200 text-center font-bold text-gray-400">
+                  {idx + 1}
+                </td>
+                <td className="px-2 py-1 border-r border-gray-200 uppercase font-medium">
+                  {item.work}
+                </td>
+                <td className="px-2 py-1 border-r border-gray-200 text-center text-gray-500">
+                  {item.unit}
+                </td>
+                <td className="px-2 py-1 border-r border-gray-200 text-center">
+                  {item.area}
+                </td>
+                <td className="px-2 py-1 border-r border-gray-200 text-right">
+                  {parseFloat(item.price).toFixed(2)}
+                </td>
+                <td className="px-2 py-1 border-r border-gray-200 text-right font-semibold text-gray-600">
+                  {item.taxableAmount.toFixed(2)}
+                </td>
+                <td className="px-2 py-1 border-r border-gray-200 text-center text-blue-600">
+                  {item.gstPerc}%
+                </td>
+                <td className="px-2 py-1 border-r border-gray-200 text-right text-blue-700 font-medium">
+                  {item.gstAmount.toFixed(2)}
+                </td>
+                <td className="px-2 py-1 text-right font-black text-slate-900">
+                  {item.amount.toFixed(2)}
+                </td>
+              </tr>
+            ))}
             {items.length === 0 && (
-              <div className="p-20 text-center text-slate-300 font-bold uppercase tracking-widest italic">
-                No items added to invoice
-              </div>
+              <tr>
+                <td
+                  colSpan="10"
+                  className="py-20 text-center text-gray-300 font-bold uppercase tracking-widest italic"
+                >
+                  No work details added to invoice
+                </td>
+              </tr>
             )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Footer Section */}
+      <div className="bg-gray-100 p-2 border-t border-gray-300 flex justify-between items-end gap-4">
+        {/* Left: Stats */}
+        <div className="flex gap-4 mb-2">
+          <div className="bg-blue-50 border border-blue-200 px-3 py-1 flex gap-2 items-center">
+            <span className="text-[10px] font-bold text-blue-800 uppercase">
+              Tot Taxable:
+            </span>
+            <span className="text-sm font-bold text-blue-900">
+              ₹{subTotal.toFixed(2)}
+            </span>
+          </div>
+          <div className="bg-blue-50 border border-blue-200 px-3 py-1 flex gap-2 items-center">
+            <span className="text-[10px] font-bold text-blue-800 uppercase">
+              Tot GST:
+            </span>
+            <span className="text-sm font-bold text-blue-900">
+              ₹{totalGst.toFixed(2)}
+            </span>
           </div>
         </div>
 
-        {/* Right Section: Totals & Actions */}
-        <div className="col-span-12 lg:col-span-4 space-y-6">
-          <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-5">
-              <CreditCard size={120} />
-            </div>
-            <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight mb-8">
-              Order Summary
-            </h2>
-
-            <div className="space-y-4 border-b border-slate-100 pb-6 mb-6">
-              <div className="flex justify-between text-sm font-medium">
-                <span className="text-slate-400">Subtotal</span>
-                <span className="text-slate-900 font-bold">
-                  ₹{subTotal.toLocaleString()}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm font-medium">
-                <span className="text-slate-400">GST (18%)</span>
-                <span className="text-slate-900 font-bold">
-                  ₹{tax.toLocaleString()}
-                </span>
-              </div>
-            </div>
-
-            <div className="mb-8">
-              <span className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">
-                Total Payable
-              </span>
-              <span className="text-5xl font-black text-slate-900 tracking-tighter">
-                ₹{grandTotal.toLocaleString()}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setItems([])}
-                className="bg-slate-100 text-slate-600 font-bold py-4 rounded-2xl hover:bg-slate-200 transition flex items-center justify-center gap-2"
-              >
-                <RotateCcw size={18} /> Reset
-              </button>
-              <button
-                onClick={handlePrint}
-                className="bg-indigo-600 text-white font-bold py-4 rounded-2xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-2"
-              >
-                <Printer size={18} /> Print
-              </button>
-            </div>
+        {/* Center: Adjustments */}
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1 bg-orange-50/50 p-2 border border-orange-100 rounded-lg">
+          <div className="flex items-center justify-between gap-2">
+            <label className="text-[10px] font-bold text-slate-500 uppercase">
+              Invoice Disc %
+            </label>
+            <input
+              type="number"
+              value={discount}
+              onChange={(e) => setDiscount(e.target.value)}
+              className="w-20 bg-white border border-orange-200 px-1 py-0.5 text-xs text-right outline-none"
+            />
           </div>
-
-          <div className="bg-amber-50 p-6 rounded-[32px] border border-amber-100">
-            <h4 className="text-amber-800 font-bold text-sm mb-2">
-              Billing Note:
-            </h4>
-            <p className="text-amber-700/70 text-xs leading-relaxed">
-              This is a computer-generated document for Mona Interior Studio.
-              50% advance is required to initiate 3D rendering services.
-            </p>
+          <div className="flex items-center justify-between gap-2">
+            <label className="text-[10px] font-bold text-slate-500 uppercase">
+              Advance Amount
+            </label>
+            <input
+              type="number"
+              value={advanceAmount}
+              onChange={(e) => setAdvanceAmount(e.target.value)}
+              className="w-20 bg-white border border-orange-200 px-1 py-0.5 text-xs text-right outline-none"
+            />
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <label className="text-[10px] font-bold text-slate-500 uppercase">
+              Invoice Less ₹
+            </label>
+            <input
+              type="number"
+              value={lessAmount}
+              onChange={(e) => setLessAmount(e.target.value)}
+              className="w-20 bg-white border border-orange-200 px-1 py-0.5 text-xs text-right outline-none"
+            />
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <label className="text-[10px] font-bold text-slate-500 uppercase">
+              Amount Received
+            </label>
+            <input
+              type="number"
+              value={receivedAmount}
+              onChange={(e) => setReceivedAmount(e.target.value)}
+              className="w-20 bg-white border border-orange-200 px-1 py-0.5 text-xs text-right outline-none"
+            />
           </div>
         </div>
+
+        {/* Right: Big Total */}
+        <div className="flex items-center gap-4">
+          <div className="text-4xl text-slate-400 font-light">₹</div>
+          <div className="bg-yellow-100 border border-yellow-200 px-10 py-2 rounded shadow-inner text-right min-w-[200px]">
+            <div className="text-[10px] font-bold text-yellow-800 uppercase -mb-1">
+              Net Payable
+            </div>
+            <div className="text-5xl font-black text-emerald-600 tracking-tighter">
+              {grandTotal.toFixed(2)}
+            </div>
+            <div className="text-[10px] font-bold text-slate-400 uppercase mt-1">
+              Bal: ₹{balanceAmount.toFixed(2)}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Action Bar */}
+      <div className="bg-slate-800 p-1 flex justify-center gap-1">
+        <button
+          onClick={clearForm}
+          className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-1.5 rounded flex items-center gap-2 text-xs font-bold transition shadow-sm"
+        >
+          <RotateCcw size={14} /> Clear - F8
+        </button>
+        <button
+          onClick={handlePrint}
+          className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-1.5 rounded flex items-center gap-2 text-xs font-bold transition shadow-sm"
+        >
+          <Printer size={14} /> Print - F5
+        </button>
+        <button
+          onClick={saveInvoice}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-1.5 rounded flex items-center gap-2 text-xs font-bold transition shadow-sm"
+        >
+          <Save size={14} /> Save - F2
+        </button>
       </div>
 
       <div className="opacity-0 fixed top-0 left-0 pointer-events-none">
@@ -317,12 +433,17 @@ export default function BillingPage() {
           ref={componentRef}
           data={{
             customer: clientName,
-            address: clientAddress,
             items,
             invoiceNo,
             invoiceDate,
-            tax,
+            discount,
+            lessAmount,
+            advanceAmount,
+            receivedAmount,
+            subTotal,
+            totalGst,
             grandTotal,
+            balanceAmount,
           }}
           docType="Invoice"
         />

@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import { useReactToPrint } from "react-to-print";
 import PrintableQuotation from "../components/PrintableQuotation";
-import { FileText, Plus, Printer } from "lucide-react";
+import { FileText, Plus, Printer, Save } from "lucide-react";
 
 export default function QuotationPage() {
   const [items, setItems] = useState([]);
@@ -11,6 +11,7 @@ export default function QuotationPage() {
     rate: "",
   });
   const [clientName, setClientName] = useState("");
+  const [clientAddress, setClientAddress] = useState("");
   const componentRef = useRef();
   const handlePrint = useReactToPrint({ contentRef: componentRef });
 
@@ -19,6 +20,21 @@ export default function QuotationPage() {
     if (!newItem.description || !newItem.area || !newItem.rate) return;
     setItems([...items, { ...newItem, id: Date.now() }]);
     setNewItem({ description: "", area: "", rate: "" });
+  };
+
+  const saveQuotation = () => {
+    if (!clientName || items.length === 0) return alert("Add client and items first");
+    const newQuote = {
+      id: `QT-${Date.now()}`,
+      clientName,
+      clientAddress,
+      items,
+      date: new Date().toLocaleDateString("en-GB"),
+      total: items.reduce((s, i) => s + i.area * i.rate, 0)
+    };
+    const existing = JSON.parse(localStorage.getItem("savedQuotations") || "[]");
+    localStorage.setItem("savedQuotations", JSON.stringify([newQuote, ...existing]));
+    alert("Quotation Saved Successfully");
   };
 
   return (
@@ -79,12 +95,20 @@ export default function QuotationPage() {
             <label className="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">
               Customer Information
             </label>
-            <input
-              placeholder="Full Client Name / Company Name"
-              className="w-full text-2xl font-bold border-b-2 border-slate-100 py-2 outline-none focus:border-amber-600"
-              value={clientName}
-              onChange={(e) => setClientName(e.target.value)}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input
+                placeholder="Full Client Name"
+                className="w-full text-xl font-bold border-b-2 border-slate-100 py-2 outline-none focus:border-amber-600"
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+              />
+              <input
+                placeholder="Site / Client Address"
+                className="w-full text-sm border-b-2 border-slate-100 py-2 outline-none focus:border-amber-600"
+                value={clientAddress}
+                onChange={(e) => setClientAddress(e.target.value)}
+              />
+            </div>
 
             <div className="mt-8 flex justify-between items-center">
               <div>
@@ -104,13 +128,21 @@ export default function QuotationPage() {
                   </span>
                 </p>
               </div>
-              <button
-                onClick={handlePrint}
-                disabled={items.length === 0}
-                className="bg-slate-900 hover:bg-slate-800 text-white px-8 py-3 rounded-2xl font-bold flex items-center gap-3 transition-all disabled:opacity-50"
-              >
-                <Printer size={20} /> Print Quotation PDF
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={saveQuotation}
+                  className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-amber-100"
+                >
+                  <Save size={20} /> Save Quote
+                </button>
+                <button
+                  onClick={handlePrint}
+                  disabled={items.length === 0}
+                  className="bg-slate-900 hover:bg-slate-800 text-white px-8 py-3 rounded-2xl font-bold flex items-center gap-3 transition-all disabled:opacity-50"
+                >
+                  <Printer size={20} /> Print
+                </button>
+              </div>
             </div>
           </div>
 

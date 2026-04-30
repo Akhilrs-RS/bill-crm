@@ -48,10 +48,7 @@ const PrintableQuotation = forwardRef(({ data }, ref) => {
           <p className="font-bold text-base">
             {data.customer || "Client Name"}
           </p>
-          <p>123 Anywhere St.</p>
-          <p>Any City 12345</p>
-          <p>Phone: 123-456-7890</p>
-          <p>Email: hello@reallygreatsite.com</p>
+          <p className="whitespace-pre-line">{data.address || "Client Address / Site Location"}</p>
         </div>
       </div>
 

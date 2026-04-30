@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Landmark,
   ChevronRight,
@@ -6,16 +6,26 @@ import {
   ArrowDownCircle,
   Search,
   Download,
-  Calendar,
+  Plus,
+  X,
+  Clock,
 } from "lucide-react";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 
 export default function AccountsPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [viewType, setViewType] = useState("Monthly"); // New state for filtering
+  const [viewType, setViewType] = useState("Monthly");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
-  const [transactions] = useState([
+  // 1. DYNAMIC CLOCK LOGIC
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const [transactions, setTransactions] = useState([
     {
       id: "TXN-001",
       date: "2026-04-28",
@@ -27,7 +37,7 @@ export default function AccountsPage() {
     {
       id: "TXN-002",
       date: "2026-04-27",
-      description: "Salary Payout - Rahul Kumar (MONA-2026-001)",
+      description: "Salary Payout - Rahul Kumar",
       type: "Debit",
       category: "Employee Payroll",
       amount: 45000,
@@ -35,7 +45,7 @@ export default function AccountsPage() {
     {
       id: "TXN-003",
       date: "2026-04-25",
-      description: "Raw Material: Marine Plywood (20 Sheets)",
+      description: "Raw Material: Marine Plywood",
       type: "Debit",
       category: "Material Purchase",
       amount: 48000,
@@ -51,47 +61,33 @@ export default function AccountsPage() {
     {
       id: "TXN-005",
       date: "2026-04-20",
-      description: "Raw Material: Hettich Hinges & Fittings",
+      description: "Hettich Hinges & Fittings",
       type: "Debit",
       category: "Material Purchase",
       amount: 12500,
     },
-    {
-      id: "TXN-006",
-      date: "2026-03-15",
-      description: "Salary Payout - Suresh P. (MONA-2026-002)",
-      type: "Debit",
-      category: "Employee Payroll",
-      amount: 24000,
-    },
   ]);
 
-  // --- FILTER LOGIC BY DATE ---
+  // 2. FILTER & CALCULATE
   const timeFilteredTransactions = transactions.filter((item) => {
     const itemDate = new Date(item.date);
     const today = new Date();
-
     if (viewType === "Monthly") {
       return (
         itemDate.getMonth() === today.getMonth() &&
         itemDate.getFullYear() === today.getFullYear()
       );
     } else {
-      // Financial Year (India: April to March)
       const fiscalYearStart =
         today.getMonth() >= 3 ? today.getFullYear() : today.getFullYear() - 1;
-      const startDate = new Date(fiscalYearStart, 3, 1); // April 1st
-      const endDate = new Date(fiscalYearStart + 1, 2, 31); // March 31st
-      return itemDate >= startDate && itemDate <= endDate;
+      return itemDate >= new Date(fiscalYearStart, 3, 1);
     }
   });
 
-  // --- SEARCH FILTER LOGIC ---
   const finalFilteredTransactions = timeFilteredTransactions.filter(
     (t) =>
       t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.type.toLowerCase().includes(searchTerm.toLowerCase()),
+      t.category.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const totalCredit = timeFilteredTransactions
@@ -104,203 +100,237 @@ export default function AccountsPage() {
 
   const exportToPDF = () => {
     const doc = new jsPDF();
-    doc.setFontSize(18);
-    doc.text(`Mona Interior - ${viewType} Statement`, 14, 20);
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(`Exported on: ${new Date().toLocaleDateString()}`, 14, 28);
-    doc.text(`Period: ${viewType}`, 14, 34);
-    doc.text(
-      `Total Balance for Period: Rs. ${balance.toLocaleString()}`,
-      14,
-      40,
-    );
-
-    const tableColumn = [
-      "Date",
-      "Description",
-      "Category",
-      "Type",
-      "Debit",
-      "Credit",
-    ];
-    const tableRows = finalFilteredTransactions.map((txn) => [
-      txn.date,
-      txn.description,
-      txn.category,
-      txn.type,
-      txn.type === "Debit" ? `Rs. ${txn.amount.toLocaleString()}` : "-",
-      txn.type === "Credit" ? `Rs. ${txn.amount.toLocaleString()}` : "-",
-    ]);
-
+    doc.setFontSize(20);
+    doc.text("MONA INTERIOR - BANK STATEMENT", 14, 20);
     doc.autoTable({
-      head: [tableColumn],
-      body: tableRows,
-      startY: 46,
+      head: [["Date", "Description", "Category", "Debit", "Credit"]],
+      body: finalFilteredTransactions.map((t) => [
+        t.date,
+        t.description,
+        t.category,
+        t.type === "Debit" ? t.amount : "-",
+        t.type === "Credit" ? t.amount : "-",
+      ]),
+      startY: 30,
       theme: "grid",
       headStyles: { fillColor: [15, 23, 42] },
-      styles: { fontSize: 8 },
     });
-    doc.save(`${viewType}_Statement_${new Date().toLocaleDateString()}.pdf`);
+    doc.save(`Statement_${viewType}.pdf`);
   };
 
   return (
     <div className="p-8 bg-slate-50 min-h-screen font-sans">
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-2 text-xs text-slate-400 uppercase font-bold tracking-widest">
-          <Landmark size={14} />
-          <ChevronRight size={12} />
-          <span>Compliance</span>
-          <ChevronRight size={12} />
-          <span className="text-slate-900">Statement of Accounts</span>
+      {/* Top Utility Bar */}
+      <div className="flex justify-between items-center mb-8">
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2 text-xs text-slate-400 uppercase font-black tracking-widest">
+            <Landmark size={14} /> Compliance <ChevronRight size={12} />{" "}
+            <span className="text-slate-900">Accounts</span>
+          </div>
+          <div className="flex items-center gap-2 px-4 py-1.5 bg-indigo-50 rounded-full border border-indigo-100 text-indigo-600 font-bold text-xs">
+            <Clock size={14} /> {currentTime.toLocaleTimeString()}
+          </div>
         </div>
 
-        {/* VIEW TOGGLE */}
-        <div className="flex bg-white p-1 rounded-2xl border shadow-sm border-slate-900">
-          {["Monthly", "Financial Year"].map((type) => (
-            <button
-              key={type}
-              onClick={() => setViewType(type)}
-              className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                viewType === type
-                  ? "bg-slate-900 text-white"
-                  : "text-slate-400 hover:text-slate-900"
-              }`}
-            >
-              {type}
-            </button>
-          ))}
-        </div>
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="bg-indigo-600 text-white px-6 py-2.5 rounded-2xl font-bold flex items-center gap-2 shadow-lg hover:bg-indigo-700 transition active:scale-95"
+        >
+          <Plus size={20} /> Add Transaction
+        </button>
       </div>
 
+      {/* Summary Section */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <div className="bg-slate-900 text-white p-8 rounded-[40px] shadow-xl border border-slate-900">
+        <div className="bg-slate-900 text-white p-8 rounded-[40px] shadow-2xl relative overflow-hidden group">
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/5 rounded-full blur-2xl group-hover:bg-white/10 transition-all" />
           <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2">
             {viewType} Balance
           </p>
-          <h2 className="text-4xl font-black">₹{balance.toLocaleString()}</h2>
+          <h2 className="text-5xl font-black tracking-tighter">
+            ₹{balance.toLocaleString()}
+          </h2>
         </div>
+
         <div className="bg-white p-8 rounded-[40px] border border-slate-900 flex justify-between items-center shadow-sm">
           <div>
             <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">
-              Total Credit
+              Inflow (Credits)
             </p>
-            <h2 className="text-2xl font-black text-emerald-600">
+            <h2 className="text-3xl font-black text-emerald-600">
               ₹{totalCredit.toLocaleString()}
             </h2>
           </div>
-          <ArrowUpCircle className="text-emerald-500" size={32} />
+          <div className="p-4 bg-emerald-50 rounded-3xl text-emerald-500">
+            <ArrowUpCircle size={32} />
+          </div>
         </div>
+
         <div className="bg-white p-8 rounded-[40px] border border-slate-900 flex justify-between items-center shadow-sm">
           <div>
             <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">
-              Total Debit
+              Outflow (Debits)
             </p>
-            <h2 className="text-2xl font-black text-red-500">
+            <h2 className="text-3xl font-black text-red-500">
               ₹{totalDebit.toLocaleString()}
             </h2>
           </div>
-          <ArrowDownCircle className="text-red-500" size={32} />
+          <div className="p-4 bg-red-50 rounded-3xl text-red-500">
+            <ArrowDownCircle size={32} />
+          </div>
         </div>
       </div>
 
+      {/* Transaction Control Center */}
       <div className="bg-white rounded-[40px] border border-slate-900 overflow-hidden shadow-sm">
-        <div className="p-8 border-b border-slate-900 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div>
-            <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter">
-              {viewType} History
-            </h2>
-            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">
-              Mona Interior Business Account
-            </p>
+        <div className="p-8 border-b border-slate-900 flex flex-col md:flex-row justify-between items-center gap-6 bg-slate-50/50">
+          <div className="flex bg-white p-1 rounded-2xl border border-slate-200 shadow-inner">
+            {["Monthly", "Financial Year"].map((type) => (
+              <button
+                key={type}
+                onClick={() => setViewType(type)}
+                className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                  viewType === type
+                    ? "bg-slate-900 text-white shadow-lg"
+                    : "text-slate-400 hover:text-slate-900"
+                }`}
+              >
+                {type}
+              </button>
+            ))}
           </div>
+
           <div className="flex gap-3">
             <div className="relative">
               <Search
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                size={16}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                size={18}
               />
               <input
-                className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-900 rounded-2xl text-sm outline-none font-bold"
-                placeholder="Search description..."
+                className="pl-12 pr-6 py-3 bg-white border border-slate-200 rounded-2xl text-sm outline-none font-bold focus:border-slate-900 transition-all w-64"
+                placeholder="Search Statement..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             <button
               onClick={exportToPDF}
-              className="bg-slate-900 text-white px-6 py-2 rounded-2xl font-bold text-xs flex items-center gap-2 hover:scale-105 transition active:scale-95"
+              className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold text-xs flex items-center gap-2 hover:bg-slate-800 transition"
             >
-              <Download size={16} /> Export PDF
+              <Download size={18} /> Export PDF
             </button>
           </div>
         </div>
 
+        {/* The Statement Table */}
         <table className="w-full text-left">
           <thead>
-            <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b bg-slate-50">
-              <th className="px-8 py-4">Date</th>
-              <th className="px-8 py-4">Description & Category</th>
-              <th className="px-8 py-4 text-center">Type</th>
-              <th className="px-8 py-4 text-right">Debit</th>
-              <th className="px-8 py-4 text-right">Credit</th>
+            <tr className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 bg-white">
+              <th className="px-10 py-6">Transaction Date</th>
+              <th className="px-10 py-6">Description</th>
+              <th className="px-10 py-6 text-right">Debit</th>
+              <th className="px-10 py-6 text-right">Credit</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-50">
             {finalFilteredTransactions.map((txn) => (
               <tr
                 key={txn.id}
-                className="hover:bg-slate-50 transition-colors group"
+                className="hover:bg-slate-50/80 transition-colors group"
               >
-                <td className="px-8 py-6">
-                  <p className="font-bold text-slate-900 text-sm">{txn.date}</p>
-                  <p className="text-[10px] font-mono text-slate-400">
-                    {txn.id}
-                  </p>
+                <td className="px-10 py-6 font-bold text-slate-900 text-sm">
+                  {txn.date}
                 </td>
-                <td className="px-8 py-6">
-                  <p className="font-black text-slate-800 text-sm uppercase">
+                <td className="px-10 py-6">
+                  <p className="font-black text-slate-900 text-base leading-tight uppercase">
                     {txn.description}
                   </p>
-                  <p className="text-[10px] text-indigo-500 font-black uppercase tracking-tighter mt-1">
+                  <span className="text-[9px] font-bold text-indigo-500 uppercase tracking-tighter">
                     {txn.category}
-                  </p>
-                </td>
-                <td className="px-8 py-6 text-center">
-                  <span
-                    className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${txn.type === "Credit" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}
-                  >
-                    {txn.type}
                   </span>
                 </td>
-                <td className="px-8 py-6 text-right">
-                  {txn.type === "Debit" ? (
-                    <span className="font-black text-slate-900 text-base">
-                      ₹{txn.amount.toLocaleString()}
-                    </span>
-                  ) : (
-                    <span className="text-slate-300">-</span>
-                  )}
+                <td className="px-10 py-6 text-right font-black text-red-500 text-base">
+                  {txn.type === "Debit"
+                    ? `₹${txn.amount.toLocaleString()}`
+                    : "-"}
                 </td>
-                <td className="px-8 py-6 text-right">
-                  {txn.type === "Credit" ? (
-                    <span className="font-black text-emerald-600 text-base">
-                      ₹{txn.amount.toLocaleString()}
-                    </span>
-                  ) : (
-                    <span className="text-slate-300">-</span>
-                  )}
+                <td className="px-10 py-6 text-right font-black text-emerald-600 text-base">
+                  {txn.type === "Credit"
+                    ? `₹${txn.amount.toLocaleString()}`
+                    : "-"}
                 </td>
               </tr>
             ))}
           </tbody>
+          {/* BOTTOM BALANCE SECTION */}
+          {finalFilteredTransactions.length > 0 && (
+            <tfoot className="border-t-4 border-slate-900">
+              <tr className="bg-slate-50">
+                <td
+                  colSpan="2"
+                  className="px-10 py-8 text-right font-black text-slate-400 uppercase tracking-widest text-[10px]"
+                >
+                  Total Movement
+                </td>
+                <td className="px-10 py-8 text-right text-red-500 font-black text-xl italic border-r border-slate-100">
+                  - ₹{totalDebit.toLocaleString()}
+                </td>
+                <td className="px-10 py-8 text-right text-emerald-600 font-black text-xl italic">
+                  + ₹{totalCredit.toLocaleString()}
+                </td>
+              </tr>
+              <tr className="bg-slate-900 text-white">
+                <td
+                  colSpan="3"
+                  className="px-10 py-10 text-right font-black uppercase tracking-[0.3em] text-xs text-slate-400"
+                >
+                  Final {viewType} Closing Balance
+                </td>
+                <td className="px-10 py-10 text-right text-3xl font-black tracking-tighter border-l border-white/10">
+                  ₹{balance.toLocaleString()}
+                </td>
+              </tr>
+            </tfoot>
+          )}
         </table>
-        {finalFilteredTransactions.length === 0 && (
-          <div className="p-20 text-center text-slate-300 font-black uppercase tracking-widest">
-            No transactions for this period
-          </div>
-        )}
       </div>
+
+      {/* Manual Entry Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-6">
+          <div className="bg-white p-10 rounded-[40px] border border-slate-900 w-full max-w-lg relative shadow-2xl">
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="absolute top-8 right-8 text-slate-400 hover:text-slate-900 transition"
+            >
+              <X size={28} />
+            </button>
+            <h2 className="text-3xl font-black mb-8 uppercase tracking-tighter">
+              New Ledger Entry
+            </h2>
+            <div className="space-y-4">
+              <input
+                className="w-full p-4 bg-slate-50 border rounded-2xl font-bold"
+                placeholder="Transaction Description"
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <select className="p-4 bg-slate-50 border rounded-2xl font-bold">
+                  <option>Credit (Income)</option>
+                  <option>Debit (Expense)</option>
+                </select>
+                <input
+                  className="p-4 bg-slate-50 border rounded-2xl font-bold"
+                  type="number"
+                  placeholder="Amount (₹)"
+                />
+              </div>
+              <button className="w-full bg-slate-900 text-white py-5 rounded-[25px] font-black uppercase tracking-widest mt-6">
+                Confirm Transaction
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -119,12 +119,10 @@ export default function QuotationPage() {
                   </span>
                 </p>
                 <p className="text-sm text-slate-500 font-medium">
-                  Estimated Total:{" "}
+                  Estimated Total (Incl 18% GST):{" "}
                   <span className="text-amber-700 font-bold">
                     ₹
-                    {items
-                      .reduce((s, i) => s + i.area * i.rate, 0)
-                      .toLocaleString()}
+                    {(items.reduce((s, i) => s + i.area * i.rate, 0) * 1.18).toLocaleString()}
                   </span>
                 </p>
               </div>

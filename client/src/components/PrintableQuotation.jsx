@@ -5,9 +5,8 @@ const PrintableQuotation = forwardRef(({ data }, ref) => {
     (sum, item) => sum + item.area * item.rate,
     0,
   );
-  const tax = subtotal * 0.1;
-  const shipping = 150;
-  const total = subtotal + tax + shipping;
+  const tax = subtotal * 0.18;
+  const total = subtotal + tax;
 
   return (
     <div
@@ -20,16 +19,16 @@ const PrintableQuotation = forwardRef(({ data }, ref) => {
           Interior Quotation
         </h1>
         <div className="mt-4 space-y-1 font-semibold">
-          <p>Quotation Number: SQ-2024-001</p>
+          <p>Quotation Number: QT-{Date.now().toString().slice(-6)}</p>
           <p>
             Date:{" "}
-            {new Date().toLocaleDateString("en-US", {
-              month: "long",
+            {new Date().toLocaleDateString("en-GB", {
               day: "numeric",
+              month: "long",
               year: "numeric",
             })}
           </p>
-          <p>Valid Until: October 21, 2026</p>
+          <p>Valid For: 30 Days</p>
         </div>
       </div>
 
@@ -37,11 +36,9 @@ const PrintableQuotation = forwardRef(({ data }, ref) => {
       <div className="flex justify-between mb-8">
         <div className="w-1/2">
           <p className="font-bold">From:</p>
-          <p className="font-bold text-base">Mona Interior Studio</p>
-          <p>123 Anywhere St.</p>
-          <p>Any City 12345</p>
-          <p>Phone: 123-456-7890</p>
-          <p>Email: hello@monainterior.com</p>
+          <p className="font-bold text-base text-amber-900">Mona Interior Studio</p>
+          <p>Professional Interior Design Services</p>
+          <p>GSTIN: [Your GST Number Here]</p>
         </div>
         <div className="w-1/2 text-right">
           <p className="font-bold">To:</p>
@@ -52,22 +49,22 @@ const PrintableQuotation = forwardRef(({ data }, ref) => {
         </div>
       </div>
 
-      <p className="font-bold mb-2 uppercase">Itemized Quotation Details:</p>
+      <p className="font-bold mb-2 uppercase text-amber-900 border-b border-amber-100 pb-1">Itemized Quotation Details:</p>
 
       {/* Table */}
       <table className="w-full border-collapse mb-6">
         <thead>
-          <tr className="bg-amber-700 text-white">
-            <th className="border p-2 text-left w-2/5">Item Description</th>
-            <th className="border p-2">Quantity</th>
-            <th className="border p-2">Unit Price ($)</th>
-            <th className="border p-2">Total Price ($)</th>
+          <tr className="bg-amber-700 text-white uppercase text-[10px]">
+            <th className="border p-2 text-left w-2/5">Work Description</th>
+            <th className="border p-2">Area / Qty</th>
+            <th className="border p-2">Unit Price (₹)</th>
+            <th className="border p-2">Total (₹)</th>
           </tr>
         </thead>
         <tbody>
           {data.items.map((item, index) => (
             <tr key={index} className="text-center">
-              <td className="border p-2 text-left">{item.description}</td>
+              <td className="border p-2 text-left font-medium uppercase">{item.description}</td>
               <td className="border p-2">{item.area} units</td>
               <td className="border p-2">{parseFloat(item.rate).toFixed(2)}</td>
               <td className="border p-2 font-semibold">
@@ -76,31 +73,25 @@ const PrintableQuotation = forwardRef(({ data }, ref) => {
             </tr>
           ))}
           {/* Subtotal Row */}
-          <tr className="bg-amber-600 text-white font-bold">
-            <td colSpan="3" className="border p-2 text-center uppercase">
-              Subtotal
+          <tr className="bg-slate-50 font-bold">
+            <td colSpan="3" className="border p-2 text-right uppercase">
+              Taxable Subtotal
             </td>
             <td className="border p-2 text-center">
-              {subtotal.toLocaleString()}
+              ₹{subtotal.toLocaleString()}
             </td>
           </tr>
-          <tr className="bg-orange-100 font-bold">
-            <td colSpan="3" className="border p-2 text-center">
-              Tax (10%)
+          <tr className="bg-orange-50 font-bold text-orange-800">
+            <td colSpan="3" className="border p-2 text-right uppercase">
+              GST (18%)
             </td>
-            <td className="border p-2 text-center">+{tax.toLocaleString()}</td>
-          </tr>
-          <tr className="bg-orange-100 font-bold">
-            <td colSpan="3" className="border p-2 text-center">
-              Shipping Cost
-            </td>
-            <td className="border p-2 text-center">{shipping}</td>
+            <td className="border p-2 text-center">₹{tax.toLocaleString()}</td>
           </tr>
           <tr className="bg-amber-800 text-white font-bold text-lg">
-            <td colSpan="3" className="border p-2 text-center uppercase">
-              Total Amount
+            <td colSpan="3" className="border p-2 text-right uppercase">
+              Grand Total
             </td>
-            <td className="border p-2 text-center">{total.toLocaleString()}</td>
+            <td className="border p-2 text-center">₹{total.toLocaleString()}</td>
           </tr>
         </tbody>
       </table>

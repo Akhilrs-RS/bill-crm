@@ -32,10 +32,10 @@ export default function BillingPage() {
   const [savedQuotations, setSavedQuotations] = useState([]);
   const [savedInvoices, setSavedInvoices] = useState([]);
 
-  // Updated Item State with Category and HSN/SAC
+  // UPDATED: Item State with Industry Categories and Standard SAC 9983
   const [newItem, setNewItem] = useState({
-    category: "Design Consultation", // Industry-Specific Category
-    hsn: "9983", // Standard SAC for Interior Services
+    category: "Design Consultation",
+    hsn: "9983",
     work: "",
     unit: "Sq.Ft",
     area: "",
@@ -43,7 +43,7 @@ export default function BillingPage() {
     gstPerc: 18,
   });
 
-  // Sequential ID Auto-Generation Logic
+  // UPDATED: Sequential ID Auto-Generation Logic
   useEffect(() => {
     const lastNum = localStorage.getItem("lastInvoiceNumber") || "1000";
     const newNum = parseInt(lastNum) + 1;
@@ -95,7 +95,8 @@ export default function BillingPage() {
         id: Date.now(),
       },
     ]);
-    // Reset but keep industry defaults
+
+    // Reset but keep the industry defaults
     setNewItem({ ...newItem, work: "", area: "", price: "" });
   };
 
@@ -118,7 +119,7 @@ export default function BillingPage() {
     if (!clientName || items.length === 0)
       return alert("Missing client or items");
 
-    // Save current sequence number
+    // UPDATED: Save incremented sequence to localStorage[cite: 1]
     const currentNum = invoiceNo.split("/")[2];
     localStorage.setItem("lastInvoiceNumber", currentNum);
 
@@ -232,7 +233,7 @@ export default function BillingPage() {
         </div>
       </div>
 
-      {/* Work Entry Row - Updated with Industry Dropdowns */}
+      {/* UPDATED: Work Entry Row with Industry Dropdowns[cite: 1] */}
       <div className="bg-orange-50 p-2 grid grid-cols-12 gap-2 border-b border-orange-200">
         <div className="col-span-2">
           <label className="block text-[10px] font-black text-orange-800 uppercase">
@@ -322,7 +323,6 @@ export default function BillingPage() {
         </div>
       </div>
 
-      {/* Table and Footer remain structurally similar but with updated styling for professionalism */}
       <div className="flex-grow bg-white overflow-y-auto">
         <table className="w-full text-[11px] border-collapse">
           <thead className="bg-slate-800 text-white sticky top-0 uppercase tracking-widest">
@@ -399,7 +399,6 @@ export default function BillingPage() {
         </table>
       </div>
 
-      {/* Adjustments Summary with Balance Tracking */}
       <div className="bg-white border-t-2 border-slate-200 p-4 grid grid-cols-12 gap-4 shadow-2xl">
         <div className="col-span-8 flex gap-6 items-center">
           <div className="text-right">
@@ -440,7 +439,6 @@ export default function BillingPage() {
         </div>
       </div>
 
-      {/* Action Bar */}
       <div className="bg-slate-900 p-2 flex justify-center gap-2">
         <button
           onClick={clearForm}
@@ -462,7 +460,6 @@ export default function BillingPage() {
         </button>
       </div>
 
-      {/* Hidden component for printing */}
       <div className="hidden">
         <PrintableInvoice
           ref={componentRef}

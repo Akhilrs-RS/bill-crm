@@ -25,6 +25,7 @@ export default function AccountsPage() {
     return () => clearInterval(timer);
   }, []);
 
+  // 2. DYNAMIC STATE FOR TRANSACTIONS
   const [transactions, setTransactions] = useState([
     {
       id: "TXN-001",
@@ -68,7 +69,15 @@ export default function AccountsPage() {
     },
   ]);
 
-  // 2. FILTER & CALCULATE
+  // Modal Form State
+  const [newTxn, setNewTxn] = useState({
+    description: "",
+    type: "Credit",
+    amount: "",
+    category: "General",
+  });
+
+  // 3. FILTER LOGIC (Monthly vs Financial Year)
   const timeFilteredTransactions = transactions.filter((item) => {
     const itemDate = new Date(item.date);
     const today = new Date();
@@ -78,9 +87,13 @@ export default function AccountsPage() {
         itemDate.getFullYear() === today.getFullYear()
       );
     } else {
-      const fiscalYearStart =
-        today.getMonth() >= 3 ? today.getFullYear() : today.getFullYear() - 1;
-      return itemDate >= new Date(fiscalYearStart, 3, 1);
+      // Indian Financial Year: April 1 to March 31
+      const currentYear = today.getFullYear();
+      const fiscalStart = today.getMonth() >= 3 ? currentYear : currentYear - 1;
+      return (
+        itemDate >= new Date(fiscalStart, 3, 1) &&
+        itemDate <= new Date(fiscalStart + 1, 2, 31)
+      );
     }
   });
 
@@ -90,42 +103,74 @@ export default function AccountsPage() {
       t.category.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
+  // 4. CALCULATION LOGIC
   const totalCredit = timeFilteredTransactions
     .filter((t) => t.type === "Credit")
-    .reduce((sum, t) => sum + t.amount, 0);
+    .reduce((sum, t) => sum + Number(t.amount), 0);
   const totalDebit = timeFilteredTransactions
     .filter((t) => t.type === "Debit")
-    .reduce((sum, t) => sum + t.amount, 0);
+    .reduce((sum, t) => sum + Number(t.amount), 0);
   const balance = totalCredit - totalDebit;
+
+  // 5. ACTION HANDLERS
+  const handleAddTransaction = (e) => {
+    e.preventDefault();
+    const transactionEntry = {
+      id: `TXN-${Math.floor(1000 + Math.random() * 9000)}`,
+      date: new Date().toISOString().split("T")[0],
+      ...newTxn,
+    };
+    setTransactions([transactionEntry, ...transactions]);
+    setIsModalOpen(false);
+    setNewTxn({
+      description: "",
+      type: "Credit",
+      amount: "",
+      category: "General",
+    });
+  };
 
   const exportToPDF = () => {
     const doc = new jsPDF();
     doc.setFontSize(20);
+    doc.setTextColor(15, 23, 42);
     doc.text("MONA INTERIOR - BANK STATEMENT", 14, 20);
+
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(
+      `Period: ${viewType} | Exported: ${new Date().toLocaleString()}`,
+      14,
+      28,
+    );
+    doc.text(`Closing Balance: Rs. ${balance.toLocaleString()}`, 14, 34);
+
     doc.autoTable({
-      head: [["Date", "Description", "Category", "Debit", "Credit"]],
+      head: [["Date", "Description", "Category", "Debit (Out)", "Credit (In)"]],
       body: finalFilteredTransactions.map((t) => [
         t.date,
         t.description,
         t.category,
-        t.type === "Debit" ? t.amount : "-",
-        t.type === "Credit" ? t.amount : "-",
+        t.type === "Debit" ? `Rs. ${t.amount}` : "-",
+        t.type === "Credit" ? `Rs. ${t.amount}` : "-",
       ]),
-      startY: 30,
+      startY: 40,
       theme: "grid",
       headStyles: { fillColor: [15, 23, 42] },
     });
-    doc.save(`Statement_${viewType}.pdf`);
+    doc.save(`Mona_Statement_${viewType}_${Date.now()}.pdf`);
   };
 
   return (
-    <div className="p-8 bg-slate-50 min-h-screen font-sans">
+    <div className="p-8 bg-slate-50 min-h-screen font-sans text-slate-900">
       {/* Top Utility Bar */}
       <div className="flex justify-between items-center mb-8">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2 text-xs text-slate-400 uppercase font-black tracking-widest">
-            <Landmark size={14} /> Compliance <ChevronRight size={12} />{" "}
-            <span className="text-slate-900">Accounts</span>
+            <Landmark size={14} /> Compliance <ChevronRight size={12} />
+            <span className="text-slate-900 font-bold">
+              Statement of Accounts
+            </span>
           </div>
           <div className="flex items-center gap-2 px-4 py-1.5 bg-indigo-50 rounded-full border border-indigo-100 text-indigo-600 font-bold text-xs">
             <Clock size={14} /> {currentTime.toLocaleTimeString()}
@@ -145,17 +190,17 @@ export default function AccountsPage() {
         <div className="bg-slate-900 text-white p-8 rounded-[40px] shadow-2xl relative overflow-hidden group">
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/5 rounded-full blur-2xl group-hover:bg-white/10 transition-all" />
           <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2">
-            {viewType} Balance
+            Current {viewType} Balance
           </p>
           <h2 className="text-5xl font-black tracking-tighter">
             ₹{balance.toLocaleString()}
           </h2>
         </div>
 
-        <div className="bg-white p-8 rounded-[40px] border border-slate-900 flex justify-between items-center shadow-sm">
+        <div className="bg-white p-8 rounded-[40px] border border-slate-200 flex justify-between items-center shadow-sm">
           <div>
             <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">
-              Inflow (Credits)
+              Total Inflow (Credits)
             </p>
             <h2 className="text-3xl font-black text-emerald-600">
               ₹{totalCredit.toLocaleString()}
@@ -166,10 +211,10 @@ export default function AccountsPage() {
           </div>
         </div>
 
-        <div className="bg-white p-8 rounded-[40px] border border-slate-900 flex justify-between items-center shadow-sm">
+        <div className="bg-white p-8 rounded-[40px] border border-slate-200 flex justify-between items-center shadow-sm">
           <div>
             <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">
-              Outflow (Debits)
+              Total Outflow (Debits)
             </p>
             <h2 className="text-3xl font-black text-red-500">
               ₹{totalDebit.toLocaleString()}
@@ -182,8 +227,8 @@ export default function AccountsPage() {
       </div>
 
       {/* Transaction Control Center */}
-      <div className="bg-white rounded-[40px] border border-slate-900 overflow-hidden shadow-sm">
-        <div className="p-8 border-b border-slate-900 flex flex-col md:flex-row justify-between items-center gap-6 bg-slate-50/50">
+      <div className="bg-white rounded-[40px] border border-slate-200 overflow-hidden shadow-sm">
+        <div className="p-8 border-b border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6 bg-slate-50/30">
           <div className="flex bg-white p-1 rounded-2xl border border-slate-200 shadow-inner">
             {["Monthly", "Financial Year"].map((type) => (
               <button
@@ -207,29 +252,28 @@ export default function AccountsPage() {
                 size={18}
               />
               <input
-                className="pl-12 pr-6 py-3 bg-white border border-slate-200 rounded-2xl text-sm outline-none font-bold focus:border-slate-900 transition-all w-64"
-                placeholder="Search Statement..."
+                className="pl-12 pr-6 py-3 bg-white border border-slate-200 rounded-2xl text-sm outline-none font-bold focus:ring-2 focus:ring-indigo-500 transition-all w-64"
+                placeholder="Search description or category..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             <button
               onClick={exportToPDF}
-              className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold text-xs flex items-center gap-2 hover:bg-slate-800 transition"
+              className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold text-xs flex items-center gap-2 hover:bg-slate-800 transition shadow-md"
             >
               <Download size={18} /> Export PDF
             </button>
           </div>
         </div>
 
-        {/* The Statement Table */}
         <table className="w-full text-left">
-          <thead>
-            <tr className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 bg-white">
-              <th className="px-10 py-6">Transaction Date</th>
+          <thead className="bg-slate-50/50">
+            <tr className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
+              <th className="px-10 py-6">Date / ID</th>
               <th className="px-10 py-6">Description</th>
-              <th className="px-10 py-6 text-right">Debit</th>
-              <th className="px-10 py-6 text-right">Credit</th>
+              <th className="px-10 py-6 text-right">Debit (Out)</th>
+              <th className="px-10 py-6 text-right">Credit (In)</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
@@ -238,11 +282,14 @@ export default function AccountsPage() {
                 key={txn.id}
                 className="hover:bg-slate-50/80 transition-colors group"
               >
-                <td className="px-10 py-6 font-bold text-slate-900 text-sm">
-                  {txn.date}
+                <td className="px-10 py-6">
+                  <p className="font-bold text-slate-900 text-sm">{txn.date}</p>
+                  <p className="text-[10px] font-mono text-slate-400">
+                    {txn.id}
+                  </p>
                 </td>
                 <td className="px-10 py-6">
-                  <p className="font-black text-slate-900 text-base leading-tight uppercase">
+                  <p className="font-black text-slate-800 text-base leading-tight uppercase">
                     {txn.description}
                   </p>
                   <span className="text-[9px] font-bold text-indigo-500 uppercase tracking-tighter">
@@ -265,26 +312,26 @@ export default function AccountsPage() {
           {/* BOTTOM BALANCE SECTION */}
           {finalFilteredTransactions.length > 0 && (
             <tfoot className="border-t-4 border-slate-900">
-              <tr className="bg-slate-50">
+              <tr className="bg-slate-50 font-black">
                 <td
                   colSpan="2"
-                  className="px-10 py-8 text-right font-black text-slate-400 uppercase tracking-widest text-[10px]"
+                  className="px-10 py-8 text-right text-[10px] uppercase tracking-widest text-slate-400"
                 >
-                  Total Movement
+                  Net Movement for Period
                 </td>
-                <td className="px-10 py-8 text-right text-red-500 font-black text-xl italic border-r border-slate-100">
+                <td className="px-10 py-8 text-right text-red-500 text-xl italic">
                   - ₹{totalDebit.toLocaleString()}
                 </td>
-                <td className="px-10 py-8 text-right text-emerald-600 font-black text-xl italic">
+                <td className="px-10 py-8 text-right text-emerald-600 text-xl italic border-l border-slate-100">
                   + ₹{totalCredit.toLocaleString()}
                 </td>
               </tr>
               <tr className="bg-slate-900 text-white">
                 <td
                   colSpan="3"
-                  className="px-10 py-10 text-right font-black uppercase tracking-[0.3em] text-xs text-slate-400"
+                  className="px-10 py-10 text-right text-xs uppercase tracking-[0.3em] text-slate-400 font-black"
                 >
-                  Final {viewType} Closing Balance
+                  Closing Statement Balance
                 </td>
                 <td className="px-10 py-10 text-right text-3xl font-black tracking-tighter border-l border-white/10">
                   ₹{balance.toLocaleString()}
@@ -293,42 +340,85 @@ export default function AccountsPage() {
             </tfoot>
           )}
         </table>
+        {finalFilteredTransactions.length === 0 && (
+          <div className="p-20 text-center text-slate-300 font-black uppercase tracking-widest italic">
+            No transactions found for this selection
+          </div>
+        )}
       </div>
 
       {/* Manual Entry Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-6">
-          <div className="bg-white p-10 rounded-[40px] border border-slate-900 w-full max-w-lg relative shadow-2xl">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-6">
+          <form
+            onSubmit={handleAddTransaction}
+            className="bg-white p-10 rounded-[40px] border-2 border-slate-900 w-full max-w-lg relative shadow-2xl"
+          >
             <button
+              type="button"
               onClick={() => setIsModalOpen(false)}
               className="absolute top-8 right-8 text-slate-400 hover:text-slate-900 transition"
             >
               <X size={28} />
             </button>
-            <h2 className="text-3xl font-black mb-8 uppercase tracking-tighter">
-              New Ledger Entry
+            <h2 className="text-3xl font-black mb-8 uppercase tracking-tighter text-slate-900">
+              Manual Ledger Entry
             </h2>
-            <div className="space-y-4">
-              <input
-                className="w-full p-4 bg-slate-50 border rounded-2xl font-bold"
-                placeholder="Transaction Description"
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <select className="p-4 bg-slate-50 border rounded-2xl font-bold">
-                  <option>Credit (Income)</option>
-                  <option>Debit (Expense)</option>
-                </select>
+            <div className="space-y-5">
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase ml-2 mb-1 block">
+                  Description
+                </label>
                 <input
-                  className="p-4 bg-slate-50 border rounded-2xl font-bold"
-                  type="number"
-                  placeholder="Amount (₹)"
+                  required
+                  className="w-full p-4 bg-slate-50 border-none rounded-2xl font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
+                  placeholder="e.g., Plywood Purchase"
+                  value={newTxn.description}
+                  onChange={(e) =>
+                    setNewTxn({ ...newTxn, description: e.target.value })
+                  }
                 />
               </div>
-              <button className="w-full bg-slate-900 text-white py-5 rounded-[25px] font-black uppercase tracking-widest mt-6">
-                Confirm Transaction
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase ml-2 mb-1 block">
+                    Type
+                  </label>
+                  <select
+                    className="w-full p-4 bg-slate-50 border-none rounded-2xl font-bold outline-none cursor-pointer"
+                    value={newTxn.type}
+                    onChange={(e) =>
+                      setNewTxn({ ...newTxn, type: e.target.value })
+                    }
+                  >
+                    <option value="Credit">Credit (Inflow)</option>
+                    <option value="Debit">Debit (Outflow)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase ml-2 mb-1 block">
+                    Amount (₹)
+                  </label>
+                  <input
+                    required
+                    type="number"
+                    className="w-full p-4 bg-slate-50 border-none rounded-2xl font-bold outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="0.00"
+                    value={newTxn.amount}
+                    onChange={(e) =>
+                      setNewTxn({ ...newTxn, amount: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-slate-900 text-white py-5 rounded-[25px] font-black uppercase tracking-widest mt-4 hover:bg-indigo-600 transition shadow-xl active:scale-95"
+              >
+                Confirm & Post Transaction
               </button>
             </div>
-          </div>
+          </form>
         </div>
       )}
     </div>
